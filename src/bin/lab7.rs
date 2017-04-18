@@ -61,7 +61,7 @@ fn main(){
 		Stock::new( 'E', 300, 800),];
 	let stocks_n = stocks.len();
 	// useless barrier :D
-	let barrier = Arc::new( Barrier::new( BROKERS_N));
+	let barrier = Arc::new( Barrier::new( BROKERS_N as usize));
 	// thread-safe boolean access for the win!
 	let term = Arc::new( AtomicBool::new( false));
 
@@ -81,7 +81,7 @@ fn main(){
 		let term = term.clone();
 
 		brokers.push( thread::spawn(
-			move ||{ thread_broker( stock, arg, term);}
+			move ||{ thread_broker( stock, arg, barrier, term);}
 		));}
 
 	// start exchange
@@ -97,7 +97,8 @@ fn main(){
 
 // broker thread function
 fn thread_broker(
-		stock : Stock, arg: BrokerArg, term: Arc<AtomicBool>){
+		stock : Stock, arg: BrokerArg,
+		barrier: Arc<Barrier>, term: Arc<AtomicBool>){
 	// vars
 	let ( cond, stock_mutex) = ( stock.cond, stock.mutex);
 	let mut stock = stock_mutex.lock().unwrap();
@@ -105,6 +106,7 @@ fn thread_broker(
 	println!( "Broker {} watching {}", arg.id, stock.name);
 
 	// start waiting for signals
+	barrier.wait();
 	// while term signal has not been sent
 	loop {
 		stock = cond.wait( stock).unwrap();
