@@ -1,12 +1,12 @@
 extern crate rand;
 
-use std::sync::{ Arc, Condvar, Mutex};
+use std::sync::{ Arc, Barrier, Condvar, Mutex};
 use std::sync::atomic::{ AtomicBool, Ordering};
 use std::thread;
 
 // constants
 const EXCHANGE_DAYS : u32 = 360;
-const EXCHANGE_DELAY : u32 = 10;
+const EXCHANGE_DELAY : u32 = 100;
 const BROKERS_N : u32 = 5;
 
 // vars
@@ -60,6 +60,8 @@ fn main(){
 		Stock::new( 'D', 240, 100),
 		Stock::new( 'E', 300, 800),];
 	let stocks_n = stocks.len();
+	// useless barrier :D
+	let barrier = Arc::new( Barrier::new( BROKERS_N));
 	// thread-safe boolean access for the win!
 	let term = Arc::new( AtomicBool::new( false));
 
@@ -70,10 +72,12 @@ fn main(){
 		let x = i as i32 / stocks_n as i32 + 1;
 		let stock = stocks[j].clone();
 		let mut arg = BrokerArg::new( i as u32, 0, 5, 0, 5);
-		{
+		{ // temporary scope due to `stock` borrow
 			let stock_inner = stock.mutex.lock().unwrap();
 			arg.buy_price = stock_inner.price - 10*( 1 + x);
 			arg.sell_price = stock_inner.price + 10*( 1 + x);}
+		// clone our synonization primitives
+		let barrier = barrier.clone();
 		let term = term.clone();
 
 		brokers.push( thread::spawn(

@@ -1,14 +1,11 @@
 extern crate rand;
 
-use std::sync::{Arc, Mutex};
+use std::sync::{ Arc, Mutex};
 use std::thread;
 
 const AGENT_SLEEP : u32 = 500;
 
 fn main(){
-	//let threads_n = atoi( argv[1]);
-	//let seats_n = atoi( argv[2]);
-	//let overselling = atof( argv[3]);
 	let threads_n : usize = 5;
 	let seats_n : u32 = 100;
 	let overselling : f32 = 0.25;
@@ -17,6 +14,7 @@ fn main(){
 
 	let mut handles = vec![];
 	for i in 0..threads_n {
+		// clone our mutex pointer!
 		let tickets = tickets.clone();
 		handles.push( thread::spawn(
 			move ||{ work( i, seats_a, tickets);}
@@ -37,6 +35,7 @@ fn work( id: usize, seats_a: u32, tickets: Arc<Mutex<u32>>){
 	loop {
 		#[allow( deprecated)]
 		thread::sleep_ms( AGENT_SLEEP);
+		// lock mutex!
 		let mut tickets = tickets.lock().unwrap();
 		let seats_left = seats_a - *tickets;
 		if seats_left == 0 { break;}
@@ -45,6 +44,7 @@ fn work( id: usize, seats_a: u32, tickets: Arc<Mutex<u32>>){
 			let mut tickets_sold = rand_1_4();
 			if tickets_sold > seats_left {
 				tickets_sold = seats_left;}
+			// sell us some tickets!
 			*tickets += tickets_sold;
 			//printf( "thread[{}]: tickets: {}", id, tickets);}
 			println!(
